@@ -32,6 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.realm.OrderedCollectionChange;
 import io.realm.RealmChangeListener;
 import io.realm.RealmConfiguration;
 import io.realm.RealmFieldType;
@@ -44,6 +45,8 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 @RunWith(AndroidJUnit4.class)
@@ -516,5 +519,38 @@ public class CollectionTests {
         });
         assertFalse(collection.isLoaded());
         collection.load();
+    }
+
+    @Test
+    public void OrderedCollectionChange_get_Deletions_Insertions_Changes_throwWhenRangeContainsTooManyIndices()
+            throws IllegalAccessException, InstantiationException {
+        OrderedCollectionChange.Range[] bigRanges = new OrderedCollectionChange.Range[] {
+                new  OrderedCollectionChange.Range(0, (long)Integer.MAX_VALUE + 1)
+        };
+        CollectionChangeSet collectionChangeSet = mock(CollectionChangeSet.class);
+        when(collectionChangeSet.getDeletionRanges()).thenReturn(bigRanges);
+        when(collectionChangeSet.getInsertionRanges()).thenReturn(bigRanges);
+        when(collectionChangeSet.getChangeRanges()).thenReturn(bigRanges);
+        when(collectionChangeSet.getDeletions()).thenCallRealMethod();
+        when(collectionChangeSet.getInsertions()).thenCallRealMethod();
+        when(collectionChangeSet.getChanges()).thenCallRealMethod();
+
+        try {
+            collectionChangeSet.getDeletions();
+            fail();
+        } catch (IllegalStateException ignored) {
+        }
+
+        try {
+            collectionChangeSet.getInsertions();
+            fail();
+        } catch (IllegalStateException ignored) {
+        }
+
+        try {
+            collectionChangeSet.getChanges();
+            fail();
+        } catch (IllegalStateException ignored) {
+        }
     }
 }
